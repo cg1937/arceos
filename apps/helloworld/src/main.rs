@@ -6,6 +6,5 @@ use axstd::println;
 
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
-    println!("this is a test");
     println!("Hello, world!");
 }
