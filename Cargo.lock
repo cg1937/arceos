@@ -248,6 +248,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "axdiskfs"
+version = "0.1.0"
+dependencies = [
+ "axdriver",
+ "axerrno",
+ "axfs_vfs",
+ "axsync",
+ "bitflags 2.3.3",
+ "driver_block",
+ "lazy_init",
+ "spin 0.9.8",
+]
+
+[[package]]
 name = "axdisplay"
 version = "0.1.0"
 dependencies = [
@@ -303,6 +317,7 @@ dependencies = [
 name = "axfs"
 version = "0.1.0"
 dependencies = [
+ "axdiskfs",
  "axdriver",
  "axerrno",
  "axfs_devfs",

@@ -3,12 +3,13 @@
 //! TODO: it doesn't work very well if the mount points have containment relationships.
 
 use alloc::{string::String, sync::Arc, vec::Vec};
+use axdiskfs::{disk, initialize_fs, FS};
 use axerrno::{ax_err, AxError, AxResult};
 use axfs_vfs::{VfsNodeAttr, VfsNodeOps, VfsNodeRef, VfsNodeType, VfsOps, VfsResult};
 use axsync::Mutex;
 use lazy_init::LazyInit;
 
-use crate::{api::FileType, fs, mounts};
+use crate::{api::FileType, fs, init_sector_manager, mounts};
 
 static CURRENT_DIR_PATH: Mutex<String> = Mutex::new(String::new());
 static CURRENT_DIR: LazyInit<Mutex<VfsNodeRef>> = LazyInit::new();
@@ -143,6 +144,41 @@ impl VfsNodeOps for RootDirectory {
     }
 }
 
+#[cfg(feature = "diskfs")]
+pub(crate) fn init_my_rootfs(disk: disk::Disk) {
+    let sector = init_sector_manager(disk).expect("failed to initialize sector manager");
+    initialize_fs(sector);
+    debug!("my diskfs!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    let fs_arc = FS.try_get().expect("failed to get fs");
+    let mut root_dir = RootDirectory::new(fs_arc.clone());
+
+    #[cfg(feature = "devfs")]
+    root_dir
+        .mount("/dev", mounts::devfs())
+        .expect("failed to mount devfs at /dev");
+
+    #[cfg(feature = "ramfs")]
+    root_dir
+        .mount("/tmp", mounts::ramfs())
+        .expect("failed to mount ramfs at /tmp");
+
+    // Mount another ramfs as procfs
+    #[cfg(feature = "procfs")]
+    root_dir // should not fail
+        .mount("/proc", mounts::procfs().unwrap())
+        .expect("fail to mount procfs at /proc");
+
+    // Mount another ramfs as sysfs
+    #[cfg(feature = "sysfs")]
+    root_dir // should not fail
+        .mount("/sys", mounts::sysfs().unwrap())
+        .expect("fail to mount sysfs at /sys");
+
+    ROOT_DIR.init_by(Arc::new(root_dir));
+    CURRENT_DIR.init_by(Mutex::new(ROOT_DIR.clone()));
+    *CURRENT_DIR_PATH.lock() = "/".into();
+}
+
 pub(crate) fn init_rootfs(disk: crate::dev::Disk) {
     cfg_if::cfg_if! {
         if #[cfg(feature = "myfs")] { // override the default filesystem
@@ -152,6 +188,8 @@ pub(crate) fn init_rootfs(disk: crate::dev::Disk) {
             FAT_FS.init_by(Arc::new(fs::fatfs::FatFileSystem::new(disk)));
             FAT_FS.init();
             let main_fs = FAT_FS.clone();
+        } else {
+            let main_fs = Arc::new(fs::ramfs::RamFileSystem::new());
         }
     }
 
