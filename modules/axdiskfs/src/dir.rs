@@ -170,7 +170,7 @@ impl Dir {
         Ok(())
     }
 
-    // add_entry: will add a entry to entries, find a entry that name[0] == 0xE5 or name[0] == 0x00,if can't find create a new one after the last entry
+    /// add_entry: will add a entry to entries, find a entry that name[0] == 0xE5 or name[0] == 0x00,if can't find create a new one after the last entry
     pub fn add_entry(&mut self, entry: DirEntry) -> Result<(), DevError> {
         let index = self.find_next_free_entry();
         match index {
@@ -187,7 +187,7 @@ impl Dir {
         Ok(())
     }
 
-    /// delete_entry: delete entry by name, set name[0] = 0xE5, free cluster
+    /// delete_entry: delete entry by name, set name\[0\] = 0xE5, free cluster
     pub fn delete_entry(&mut self, name: &str) -> Result<(), DevError> {
         let index = self.get_entry_by_name(name);
         let fs_arc = FS.try_get().expect("FS not initialized");
@@ -336,7 +336,7 @@ impl DirNode {
         None
     }
 
-    // a function that can parse dir 's DirEntry ,then extract info to the children
+    /// a function that can parse dir 's DirEntry ,then extract info to the children
     pub fn update_children(&self) -> Result<(), DevError> {
         let self_dir = self.dir.read();
         let self_entries_len = self_dir.entries.len();

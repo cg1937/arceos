@@ -73,7 +73,7 @@ impl BootSector {
         self.total_sectors32 - self.data_start_sector()
     }
 
-    // return the number of clusters, <= 4085 is FAT12, >= 4086 and <= 65525 is FAT16, >= 65526 is FAT32
+    /// return the number of clusters, <= 4085 is FAT12, >= 4086 and <= 65525 is FAT16, >= 65526 is FAT32
     pub fn clusters_count(&self) -> u32 {
         self.data_sectors_count() / self.sectors_per_cluster as u32
     }
@@ -115,8 +115,11 @@ impl Default for BootSector {
 #[repr(C)]
 #[derive(Debug)]
 pub struct FSInfoSector {
-    pub free_cluster_count: u32, // number of free clusters on the volume
-    pub next_free_cluster: u32,  // cluster number of the first cluster searched for free cluster
+    /// number of free clusters on the volume
+    pub free_cluster_count: u32,
+    /// cluster number of the first cluster searched for free cluster
+    pub next_free_cluster: u32,
+    /// reserved, fill to 512 bytes
     pub reserved: [u8; 504],
 }
 
@@ -151,6 +154,7 @@ impl Default for FSInfoSector {
     }
 }
 
+/// A Struct representing the attribute of a directory entry
 bitflags::bitflags! {
     /// A Struct representing the attribute of a directory entry
     #[derive(Debug, Copy, Clone)]
@@ -179,7 +183,7 @@ pub struct DirEntry {
 }
 
 impl DirEntry {
-    // implement a new function for DirEntry, function's parameter is a slice of 32 bytes, then return a packed DirEntry struct
+    /// implement a new function for DirEntry, function's parameter is a slice of 32 bytes, then return a packed DirEntry struct
     pub fn new(buf: &[u8]) -> Self {
         let mut dir_entry = Self::default();
         dir_entry.name.copy_from_slice(&buf[0..23]);

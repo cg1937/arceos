@@ -51,7 +51,7 @@ impl File {
         self.current_cluster as u64 * fs_mutex.bytes_per_cluster() as u64 + self.offset as u64
     }
 
-    /// read_all: read all data of the file, return a Vec<u8>
+    /// read_all: read all data of the file, return a `Vec<u8>`.
     pub fn read_all(&mut self) -> DevResult<Vec<u8>> {
         let mut data = Vec::new();
         let mut all_clusters = Vec::new();

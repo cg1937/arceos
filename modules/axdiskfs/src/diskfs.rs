@@ -280,7 +280,7 @@ impl CCFileSystem {
         }
     }
 
-    // write fs_info_sector to disk
+    /// write fs_info_sector to disk
     pub fn flush_fs_info_sector(&self) -> Result<(), DevError> {
         self.sector_manager.write().set_position(512);
         self.update_free_cluster_count();
@@ -293,7 +293,7 @@ impl CCFileSystem {
         Ok(())
     }
 
-    // allocate a cluster between curr_cluster_id and next_cluster_id
+    /// allocate a cluster between curr_cluster_id and next_cluster_id
     pub fn allocate_cluster_at_middle(
         &self,
         curr_cluster_id: u32,
