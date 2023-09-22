@@ -1,5 +1,6 @@
 // extern crate std;
 
+/// A macro to calulate the bytes of a struct.
 #[macro_export]
 macro_rules! size_of_struct {
     ($struct_type:ty) => {

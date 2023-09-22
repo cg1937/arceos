@@ -1,21 +1,33 @@
 use alloc::string::{String, ToString};
 
+/// A Struct representing the boot sector of a FAT32 volume
 #[repr(packed)]
 #[derive(Debug)]
 pub struct BootSector {
-    pub bytes_per_sector: u16,       // 512/1024/2048/4096
-    pub sectors_per_cluster: u8,     // 1/2/4/8/16/32/64/128
-    pub reserved_sectors_count: u16, // 32 for fat32
-    pub total_sectors32: u32,        // total sectors in the volume
-    pub fat_count: u8,               // 2 for fat32
-    pub sectors_per_fat32: u32,      // size of a FAT in unit of sector
-    pub root_cluster: u32,           // first cluster of root directory, usually set to 2
-    pub root_dir_sectors_count: u32, // size of root directory in unit of sector
-    pub fsinfo_sector: u16,          // sector number of FSINFO structure, usually set to 1
-    pub reserved: [u8; 488],         // fill to 512 bytes
+    /// bytes per sector, usually set to 512
+    pub bytes_per_sector: u16,
+    /// sectors per cluster, usually set to 1
+    pub sectors_per_cluster: u8,
+    /// reserved sectors count, usually set to 32 for fat32
+    pub reserved_sectors_count: u16,
+    /// total sectors in the volume
+    pub total_sectors32: u32,
+    /// number of FATs, usually set to 2
+    pub fat_count: u8,
+    /// size of a FAT in unit of sector
+    pub sectors_per_fat32: u32,
+    /// first cluster of root directory, usually set to 2
+    pub root_cluster: u32,
+    /// size of root directory in unit of sector
+    pub root_dir_sectors_count: u32,
+    /// sector number of FSINFO structure, usually set to 1
+    pub fsinfo_sector: u16,
+    /// reserved, fill to 512 bytes
+    pub reserved: [u8; 488],
 }
 
 impl BootSector {
+    /// convert the BootSector struct to a slice of bytes
     pub fn to_bytes(&self) -> &[u8] {
         unsafe {
             core::slice::from_raw_parts(
@@ -25,33 +37,38 @@ impl BootSector {
         }
     }
 
-    // pub fn new1
-
+    /// fat_start_sector: the start sector of FAT
     pub fn fat_start_sector(&self) -> u32 {
         self.reserved_sectors_count as u32
     }
 
+    /// bytes_per_sector: the bytes per sector
     pub fn bytes_per_sector(&self) -> u32 {
         self.bytes_per_sector as u32
     }
 
+    /// fat_sectors_count: the number of sectors in FAT
     pub fn fat_sectors_count(&self) -> u32 {
         // self.sectors_per_fat32 * self.fat_count as u32
         self.sectors_per_fat32
     }
 
+    /// root_dir_start_sector: the start sector of root directory
     pub fn root_dir_start_sector(&self) -> u32 {
         self.fat_start_sector() + self.fat_sectors_count() * 2
     }
 
+    /// root_dir_sectors_count: the number of sectors in root directory
     pub fn root_dir_sectors_count(&self) -> u32 {
         self.root_dir_sectors_count
     }
 
+    /// data_start_sector: the start sector of data area
     pub fn data_start_sector(&self) -> u32 {
         self.root_dir_start_sector() // + self.root_dir_sectors_count()
     }
 
+    /// data_sectors_count: the number of sectors in data area
     pub fn data_sectors_count(&self) -> u32 {
         self.total_sectors32 - self.data_start_sector()
     }
@@ -61,13 +78,17 @@ impl BootSector {
         self.data_sectors_count() / self.sectors_per_cluster as u32
     }
 
+    /// cluster_to_sector: convert cluster id to sector id
     pub fn sector_to_cluster(&self, sector_id: u32) -> u32 {
         (sector_id - self.data_start_sector()) / self.sectors_per_cluster as u32 + 2
     }
 
+    /// sector_to_cluster: convert sector id to cluster id
     pub fn cluster_to_sector(&self, cluster_id: u32) -> u32 {
         self.data_start_sector() + (cluster_id - 2) * self.sectors_per_cluster as u32
     }
+
+    /// bytes_per_cluster: the bytes per cluster
     pub fn bytes_per_cluster(&self) -> u32 {
         self.bytes_per_sector() * self.sectors_per_cluster as u32
     }
@@ -90,6 +111,7 @@ impl Default for BootSector {
     }
 }
 
+/// A Struct representing the FSInfo sector of a FAT32 volume
 #[repr(C)]
 #[derive(Debug)]
 pub struct FSInfoSector {
@@ -99,6 +121,7 @@ pub struct FSInfoSector {
 }
 
 impl FSInfoSector {
+    /// convert the FSInfoSector struct to a slice of bytes
     pub fn to_bytes(&self) -> &[u8] {
         unsafe {
             core::slice::from_raw_parts(
@@ -108,6 +131,7 @@ impl FSInfoSector {
         }
     }
 
+    /// new a FSInfoSector struct
     pub fn new(free_cluster_count: u32, next_free_cluster: u32) -> Self {
         Self {
             free_cluster_count,
@@ -128,6 +152,7 @@ impl Default for FSInfoSector {
 }
 
 bitflags::bitflags! {
+    /// A Struct representing the attribute of a directory entry
     #[derive(Debug, Copy, Clone)]
     pub struct DirEntryAttr: u8 {
         const ReadOnly = 0x01;
@@ -139,13 +164,18 @@ bitflags::bitflags! {
     }
 }
 
+/// A Struct representing a directory entry
 #[repr(packed)]
 #[derive(Debug, Copy, Clone)]
 pub struct DirEntry {
-    pub name: [u8; 23],     // SFN(Short file name) of the object
-    pub attr: DirEntryAttr, // file attribute
-    pub first_cluster: u32, // high word of this entry's first cluster number (always 0 for a FAT12 or FAT16 volume)
-    pub file_size: u32,     // 32-bit DWORD holding this file's size in bytes
+    /// SFN(Short file name) of the object
+    pub name: [u8; 23],
+    /// attribute of the object
+    pub attr: DirEntryAttr,
+    /// first cluster of the file
+    pub first_cluster: u32,
+    /// file size in bytes
+    pub file_size: u32,
 }
 
 impl DirEntry {
@@ -167,26 +197,32 @@ impl DirEntry {
         dir_entry
     }
 
+    /// increase_file_size: increase the file size
     pub fn increase_file_size(&mut self, size: u32) {
         self.file_size += size;
     }
 
+    /// decrease_file_size: decrease the file size
     pub fn decrease_file_size(&mut self, size: u32) {
         self.file_size -= size;
     }
 
+    /// is_valid: check if the directory entry is valid
     pub fn is_valid(&self) -> bool {
         self.name[0] != 0xE5 && self.name[0] != 0x00
     }
 
+    /// is_dir: check if the directory entry is a directory
     pub fn is_dir(&self) -> bool {
         self.attr.contains(DirEntryAttr::Directory)
     }
 
+    /// is_file: check if the directory entry is a file
     pub fn is_file(&self) -> bool {
         !self.is_dir()
     }
 
+    /// name: get the name of the directory entry
     pub fn name(&self) -> Option<String> {
         let name_string = match core::str::from_utf8(&self.name) {
             Ok(utf8_str) => utf8_str.trim_matches('\0').to_string(),
@@ -206,6 +242,7 @@ impl DirEntry {
         }
     }
 
+    /// set_name: set the name of the directory entry
     pub fn as_bytes(&self) -> &[u8] {
         unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, 32) }
     }
@@ -228,16 +265,23 @@ impl Default for DirEntry {
     }
 }
 
+/// A Struct representing a FAT entry's type
 #[derive(PartialEq)]
 pub enum FatMarker {
+    /// Free cluster
     Free,
+    /// Reserved cluster
     Reserved,
-    InUse(u32), // 包含下一个索引的值
+    /// In use cluster
+    InUse(u32),
+    /// Bad cluster
     BadCluster,
+    /// End of chain
     EndOfChain,
 }
 
 impl FatMarker {
+    /// from_value: convert a u32 value to a FatMarker
     pub fn from_value(value: u32) -> Self {
         match value {
             0x00000000 => FatMarker::Free,
@@ -249,6 +293,7 @@ impl FatMarker {
     }
 }
 
+/// convert a u8 array to a string
 pub fn convert_to_u8_array(s: &str) -> Option<[u8; 23]> {
     let bytes = s.as_bytes();
     if bytes.len() > 23 {

@@ -18,15 +18,21 @@ use spin::RwLock;
 
 use core::cmp::max;
 
+/// A File Struct to store the FAT fileSystem file's information
 #[derive(Clone)]
 pub struct File {
+    /// file size in bytes
     size: u32,
-    first_cluster: u32,   // 文件的第一个簇号
-    current_cluster: u32, // 当前读取的簇号
-    offset: u32,          // 当前读取的簇的偏移量
+    /// the first cluster of the file
+    first_cluster: u32,
+    /// the current cluster of the file   
+    current_cluster: u32,
+    /// the offset of the current cluster
+    offset: u32,
 }
 
 impl File {
+    /// create a new file
     pub fn new(first_cluster: u32) -> Self {
         Self {
             size: 0,
@@ -45,6 +51,7 @@ impl File {
         self.current_cluster as u64 * fs_mutex.bytes_per_cluster() as u64 + self.offset as u64
     }
 
+    /// read_all: read all data of the file, return a Vec<u8>
     pub fn read_all(&mut self) -> DevResult<Vec<u8>> {
         let mut data = Vec::new();
         let mut all_clusters = Vec::new();
@@ -73,6 +80,7 @@ impl File {
         Ok(data)
     }
 
+    /// read_at: use curr_cluster and offset to read data
     pub fn read_at(&mut self, byte_offset: u64, buf: &mut [u8]) -> DevResult<usize> {
         if byte_offset >= self.size() {
             return Ok(0usize);
@@ -138,6 +146,7 @@ impl File {
         Ok(data)
     }
 
+    /// write_at: use curr_cluster and offset to write data
     pub fn write_at(&mut self, byte_offset: u64, buf: &[u8]) -> DevResult<usize> {
         // can't write data beyond the file size
         if byte_offset > self.size() || (self.size() == 0 && byte_offset != 0) {
@@ -194,6 +203,7 @@ impl File {
         Ok(buf_offset)
     }
 
+    /// write_seq: use curr_cluster and offset to write data(write to the current cluster end)
     pub fn write_seq(&mut self, buf: &[u8]) -> DevResult<usize> {
         let fs_arc = FS.try_get().expect("fs is not initialized");
 
@@ -240,6 +250,7 @@ impl File {
         Ok(buf_offset)
     }
 
+    /// seek: use curr_cluster and offset to seek data
     pub fn seek(&mut self, pos: SeekFrom) -> Result<(), DevError> {
         match pos {
             SeekFrom::Start(pos) => {
@@ -289,6 +300,7 @@ impl File {
         self.seek_from_start(new_pos)
     }
 
+    /// truncate: truncate the file to the given size
     pub fn truncate(&mut self, size: u64) -> Result<(), DevError> {
         // size should be cluster's multiple
         let fs_arc = FS.try_get().expect("fs is not initialized");
@@ -340,14 +352,19 @@ impl File {
         Ok(())
     }
 
+    /// update_file_size: update the file size
     pub fn update_file_size(&mut self, size: u32) {
         self.size = size;
     }
 }
 
+/// A FileNode Struct to represent a file in the FAT fileSystem
 pub struct FileNode {
+    /// file: the file of the fileNode
     file: RwLock<File>,
+    /// name: the name of the fileNode
     name: RwLock<String>,
+    /// parent: the parent of the fileNode
     parent: RwLock<Weak<DirNode>>,
 }
 
@@ -362,6 +379,7 @@ impl Clone for FileNode {
 }
 
 impl FileNode {
+    /// create a new fileNode
     pub fn new(file: File, name: String, parent: Option<Weak<DirNode>>) -> Self {
         Self {
             file: RwLock::new(file),
@@ -371,38 +389,46 @@ impl FileNode {
         }
     }
 
+    /// self_rename: rename the fileNode itself
     pub fn self_rename(&self, new_name: &str) {
         let mut name_lock = self.name.write();
         *name_lock = new_name.to_string();
     }
 
+    /// get_name: get the name of the fileNode
     pub fn get_name(&self) -> String {
         self.name.read().clone()
     }
 
+    /// get_size: get the size of the fileNode
     pub fn get_size(&self) -> u64 {
         self.file.read().size() as u64
     }
 
+    /// parent: get the parent of the fileNode
     pub fn parent(&self) -> Option<Arc<DirNode>> {
         self.parent.read().upgrade()
     }
 
+    /// update_size: update the size of the fileNode
     pub fn update_size(&self) -> Result<(), DevError> {
         let new_size = self.file.read().size() as u32;
         let parent = self.parent.write().upgrade().unwrap();
         parent.update_child_file_size(self.name.read().clone().as_str(), new_size)
     }
 
+    /// set_parent: set the parent of the fileNode
     pub fn set_parent(&self, parent: Weak<DirNode>) {
         let mut parent_lock = self.parent.write();
         *parent_lock = parent;
     }
 
+    /// read_at_test: read data from the fileNode
     pub fn read_at_test(&self, byte_offset: u64, buf: &mut [u8]) -> Result<usize, DevError> {
         self.file.write().read_at(byte_offset, buf)
     }
 
+    /// write_at_test: write data to the fileNode
     pub fn write_at_test(&self, byte_offset: u64, buf: &[u8]) -> Result<usize, DevError> {
         let res = self.file.write().write_at(byte_offset, buf);
 
@@ -410,16 +436,19 @@ impl FileNode {
         res
     }
 
+    /// read_all_test: read all data of the fileNode
     pub fn read_all_test(&self) -> Result<Vec<u8>, DevError> {
         self.file.write().read_all()
     }
 
+    /// truncate_test: truncate the fileNode
     pub fn truncate_test(&self, size: u64) -> Result<(), DevError> {
         let res = self.file.write().truncate(size);
         self.update_size()?;
         res
     }
 
+    /// is_empty: check if the fileNode is empty
     pub fn is_empty(&self) -> bool {
         self.file.read().size() == 0
     }

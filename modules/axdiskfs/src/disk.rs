@@ -1,18 +1,26 @@
 use axdriver::{prelude::*, AxBlockDevice};
 
+/// The block size of the disk. Default to 512 bytes.
 const BLOCK_SIZE: usize = 512;
 
+/// Seek from where.
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]
 pub enum SeekFrom {
+    /// Seek from the start of the disk.
     Start(u64),
+    /// Seek from the current position.
     End(i64),
+    /// Seek from the end of the disk.
     Current(i64),
 }
 
 /// A disk device with a cursor.
 pub struct Disk {
+    /// The current block id.
     block_id: u64,
+    /// The current offset within the block.
     offset: usize,
+    /// The underlying block device.
     dev: AxBlockDevice,
 }
 
@@ -27,6 +35,7 @@ impl Disk {
         }
     }
 
+    /// Get the block size of the disk.
     pub fn block_size(&self) -> usize {
         BLOCK_SIZE
     }
@@ -101,6 +110,7 @@ impl Disk {
         Ok(write_size)
     }
 
+    /// Read from the disk, returns the number of bytes read.
     pub fn read(&mut self, mut buf: &mut [u8]) -> DevResult<usize> {
         let mut read_len = 0;
         while !buf.is_empty() {
@@ -117,6 +127,7 @@ impl Disk {
         Ok(read_len)
     }
 
+    /// Write to the disk, returns the number of bytes written.
     pub fn write(&mut self, mut buf: &[u8]) -> DevResult<usize> {
         let mut write_len = 0;
         while !buf.is_empty() {
@@ -132,12 +143,7 @@ impl Disk {
         Ok(write_len)
     }
 
-    // //todo full disk write back
-
-    // fn flush(&mut self) -> DevResult<()> {
-    //     unimplemented!("flush")
-    // }
-
+    /// Seek the cursor, returns the new position.
     pub fn seek(&mut self, pos: SeekFrom) -> DevResult<u64> {
         let size = self.size();
         let new_pos = match pos {
@@ -153,6 +159,7 @@ impl Disk {
         Ok(new_pos)
     }
 
+    /// Read at a global offset, returns the number of bytes read.
     pub fn read_at(&mut self, global_offset: u64, buf: &mut [u8]) -> DevResult<usize> {
         let pos = self.position();
         self.seek(SeekFrom::Start(global_offset))?;
@@ -161,6 +168,7 @@ impl Disk {
         Ok(read_len)
     }
 
+    /// Write at a global offset, returns the number of bytes written.
     pub fn write_at(&mut self, global_offset: u64, buf: &[u8]) -> DevResult<usize> {
         let pos = self.position();
         self.seek(SeekFrom::Start(global_offset))?;

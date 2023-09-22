@@ -41,7 +41,7 @@ fn test_sector() {
     println!("test sector from axdiskfs...");
     let sector = init_sector_manager().expect("failed to init sector manager");
     initialize_fs(sector);
-    let fs_arc = FS.get().expect("FS not initialized");
+    let fs_arc = FS.try_get().expect("FS not initialized");
     let res = fs_arc.is_end(0x0fffffff);
     assert_eq!(res, true);
     let res = fs_arc.is_end(0x0ffffff8);

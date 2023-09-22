@@ -11,6 +11,7 @@ use crate::layout::{BootSector, DirEntry, FSInfoSector, FatMarker};
 use crate::sector::SectorManager;
 use axfs_vfs::{VfsNodeRef, VfsOps};
 
+/// A abstraction Struct of a FAT32 filesystem.
 pub struct CCFileSystem {
     root: RwLock<Option<Arc<DirNode>>>,
     sector_manager: RwLock<SectorManager>,
@@ -31,10 +32,12 @@ impl CCFileSystem {
         }
     }
 
+    /// bytes_per_cluster: return the bytes per cluster
     pub fn bytes_per_cluster(&self) -> u32 {
         self.boot_sector.read().bytes_per_cluster()
     }
 
+    /// init: init the filesystem, including sector_manager, boot_sector, fs_info_sector, fat, root
     pub fn init(&self) -> Result<(), DevError> {
         self.sector_manager.write().set_position(0);
         let mut boot_sector = self.boot_sector.write();
@@ -104,10 +107,12 @@ impl CCFileSystem {
         Ok(())
     }
 
+    /// get_next_free_cluster: return the next free cluster
     pub fn get_next_free_cluster(&self) -> u32 {
         self.fs_info_sector.read().next_free_cluster
     }
 
+    /// init_root: init the root directory
     fn init_root(&self) -> DevResult<()> {
         let root_dir_start_sector = self.boot_sector.read().root_dir_start_sector() as u64;
         let root_dir_sector_count = self.boot_sector.read().root_dir_sectors_count() as u64;
@@ -156,6 +161,7 @@ impl CCFileSystem {
         Ok(())
     }
 
+    /// init_fat_table: read FAT area from disk and init the fat table
     fn init_fat_table(&self) -> DevResult<()> {
         let fat_sectors_count = self.boot_sector.read().fat_sectors_count() as u64;
         let fat_start_sector = self.boot_sector.read().fat_start_sector() as u64;
@@ -185,6 +191,7 @@ impl CCFileSystem {
         self.root.read().clone()
     }
 
+    /// get_fat_entry: return the fat entry via cluster_id.
     pub fn get_fat_entry(&self, cluster_id: u32) -> Result<u32, DevError> {
         let fat = self.fat.read();
         if cluster_id >= fat.len() as u32 || cluster_id < 2u32 {
@@ -193,6 +200,7 @@ impl CCFileSystem {
         Ok(fat[cluster_id as usize])
     }
 
+    /// read_cluster: read a cluster from disk via cluster_id.
     pub fn read_cluster(&self, cluster_id: u32) -> Result<Vec<u8>, DevError> {
         let cluster_start_sector =
             self.boot_sector.read().cluster_to_sector(cluster_id) as u64 * 512;
@@ -206,14 +214,17 @@ impl CCFileSystem {
         Ok(cluster)
     }
 
+    /// is_end: return true if the cluster is the end of the chain.
     pub fn is_end(&self, index: u32) -> bool {
         FatMarker::from_value(index) == FatMarker::EndOfChain
     }
 
+    /// is_bad_cluster: return true if the cluster is bad.
     pub fn is_bad_cluster(&self, index: u32) -> bool {
         FatMarker::from_value(index) == FatMarker::BadCluster
     }
 
+    /// write_cluster: write a cluster to disk via cluster_id.
     pub fn write_cluster(&self, cluster_id: u32, data: &[u8]) -> Result<(), DevError> {
         let cluster_start_sector =
             self.boot_sector.read().cluster_to_sector(cluster_id) as u64 * 512;
@@ -298,6 +309,7 @@ impl CCFileSystem {
         Some(next_free_cluster)
     }
 
+    /// allocate a cluster at the end of the chain
     pub fn allocate_cluster_at_end(&self, curr_cluster_id: u32) -> Option<u32> {
         let next_free_cluster = self.find_next_free_cluster()?;
         let mut fat = self.fat.write();
@@ -309,6 +321,7 @@ impl CCFileSystem {
         Some(next_free_cluster)
     }
 
+    /// allocate a cluster at the start of the chain
     pub fn allocate_cluster_at_start(&self) -> Option<u32> {
         let next_free_cluster = self.find_next_free_cluster()?;
         let mut fat = self.fat.write();
@@ -319,6 +332,7 @@ impl CCFileSystem {
         Some(next_free_cluster)
     }
 
+    /// link_to_end: link the cluster to the end of the chain
     pub fn link_to_end(&self, curr_cluster_id: u32) -> Result<(), DevError> {
         let mut fat = self.fat.write();
         fat[curr_cluster_id as usize] = 0x0FFFFFFF;
@@ -327,6 +341,7 @@ impl CCFileSystem {
         Ok(())
     }
 
+    /// free_cluster: free the cluster
     pub fn free_cluster(&self, cluster_id: u32) -> Result<(), DevError> {
         let mut fat = self.fat.write();
         fat[cluster_id as usize] = 0x00000000;
