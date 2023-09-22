@@ -170,7 +170,7 @@ impl Dir {
         Ok(())
     }
 
-    /// add_entry: will add a entry to entries, find a entry that name[0] == 0xE5 or name[0] == 0x00,if can't find create a new one after the last entry
+    /// add_entry: will add a entry to entries, find a entry that name\[0\] == 0xE5 or name\[0\] == 0x00,if can't find create a new one after the last entry
     pub fn add_entry(&mut self, entry: DirEntry) -> Result<(), DevError> {
         let index = self.find_next_free_entry();
         match index {

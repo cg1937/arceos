@@ -63,7 +63,7 @@ impl SectorManager {
         Ok(u32::from_le_bytes(buf))
     }
 
-    // a read 8 byte in sequence, not use global_offset,return the data read.
+    /// a read 8 byte in sequence, not use global_offset,return the data read.
     pub fn read_8_seq(&self) -> DevResult<u8> {
         let mut buf = [0; 1];
         self.inner.lock().read(&mut buf)?;

@@ -154,16 +154,21 @@ impl Default for FSInfoSector {
     }
 }
 
-/// A Struct representing the attribute of a directory entry
 bitflags::bitflags! {
     /// A Struct representing the attribute of a directory entry
     #[derive(Debug, Copy, Clone)]
     pub struct DirEntryAttr: u8 {
+        /// read only
         const ReadOnly = 0x01;
+        /// hidden
         const Hidden = 0x02;
+        /// system
         const System = 0x04;
+        /// volume id
         const VolumeId = 0x08;
+        /// if Directory is set, this is a directory, else this is a file
         const Directory = 0x10;
+        /// archive
         const Archive = 0x20;
     }
 }

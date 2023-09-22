@@ -132,7 +132,7 @@ impl File {
         Ok(buf_offset)
     }
 
-    // read_seq: use curr_cluster and offset to read data(read to the current cluster end)
+    /// read_seq: use curr_cluster and offset to read data(read to the current cluster end)
     pub fn read_seq(&mut self) -> DevResult<Vec<u8>> {
         let mut data = Vec::new();
         let fs_mutex = FS.try_get().expect("fs is not initialized");
