@@ -49,6 +49,7 @@ pub fn init_filesystems(mut blk_devs: AxDeviceContainer<AxBlockDevice>) {
     self::root::init_my_rootfs(disk::Disk::new(dev));
 }
 
+/// Initializes sector manager by block devices.
 pub fn init_sector_manager(disk: disk::Disk) -> Result<sector::SectorManager, DevError> {
     let sector = sector::SectorManager::new(disk);
     let boot_sector = layout::BootSector {
