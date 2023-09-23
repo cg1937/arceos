@@ -1,7 +1,4 @@
-#![cfg(feature = "diskfs")]
-#![cfg(not(feature = "fatfs"))]
-#![cfg(not(feature = "myfs"))]
-
+#[cfg(feature = "diskfs")]
 mod test_common;
 
 use axdiskfs::FS;
@@ -25,6 +22,7 @@ fn test_diskfs() {
 
     let mut cmd = Command::new("sh");
 
+    println!("Running test_make_diskfs_img.sh ...");
     cmd.arg("./resources/test_make_diskfs_img.sh")
         .output()
         .expect("failed to execute process");

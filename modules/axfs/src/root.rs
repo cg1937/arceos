@@ -3,13 +3,17 @@
 //! TODO: it doesn't work very well if the mount points have containment relationships.
 
 use alloc::{string::String, sync::Arc, vec::Vec};
+#[cfg(feature = "diskfs")]
 use axdiskfs::{disk, initialize_fs, FS};
 use axerrno::{ax_err, AxError, AxResult};
 use axfs_vfs::{VfsNodeAttr, VfsNodeOps, VfsNodeRef, VfsNodeType, VfsOps, VfsResult};
 use axsync::Mutex;
 use lazy_init::LazyInit;
 
-use crate::{api::FileType, fs, init_sector_manager, mounts};
+use crate::{api::FileType, fs, mounts};
+
+#[cfg(feature = "diskfs")]
+use crate::init_sector_manager;
 
 static CURRENT_DIR_PATH: Mutex<String> = Mutex::new(String::new());
 static CURRENT_DIR: LazyInit<Mutex<VfsNodeRef>> = LazyInit::new();

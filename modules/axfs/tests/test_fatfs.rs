@@ -1,7 +1,4 @@
-#![cfg(feature = "fatfs")]
-#![cfg(not(feature = "myfs"))]
-#![cfg(not(feature = "diskfs"))]
-
+#[cfg(feature = "fatfs")]
 mod test_common;
 
 use axdriver::AxDeviceContainer;

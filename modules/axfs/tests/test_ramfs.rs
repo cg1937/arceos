@@ -1,7 +1,4 @@
-#![cfg(feature = "myfs")]
-#![cfg(not(feature = "fatfs"))]
-#![cfg(not(feature = "diskfs"))]
-
+#[cfg(feature = "myfs")]
 mod test_common;
 
 use std::sync::Arc;

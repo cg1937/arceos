@@ -34,6 +34,7 @@ mod root;
 pub mod api;
 pub mod fops;
 
+#[cfg(feature = "diskfs")]
 use axdiskfs::{disk, layout, sector};
 use axdriver::{prelude::*, AxDeviceContainer};
 
@@ -47,14 +48,15 @@ pub fn init_filesystems(mut blk_devs: AxDeviceContainer<AxBlockDevice>) {
     cfg_if::cfg_if! {
         if #[cfg(feature = "myfs")] {
             self::root::init_rootfs(self::dev::Disk::new(dev));
-        } else if #[cfg(feature = "fatfs")] {
-            self::root::init_rootfs(self::dev::Disk::new(dev));
         } else if #[cfg(feature = "diskfs")] {
             self::root::init_my_rootfs(disk::Disk::new(dev));
+        } else if #[cfg(feature = "fatfs")] {
+            self::root::init_rootfs(self::dev::Disk::new(dev));
         }
     }
 }
 
+#[cfg(feature = "diskfs")]
 /// Initializes sector manager by block devices.
 pub fn init_sector_manager(disk: disk::Disk) -> Result<sector::SectorManager, DevError> {
     let sector = sector::SectorManager::new(disk);

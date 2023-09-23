@@ -9,13 +9,13 @@
 Before running the app, make an image of FAT32:
 
 ```shell
-make disk_img
+make disk_img FS=fatfs
 ```
 
 Run the app:
 
 ```shell
-make A=apps/fs/shell ARCH=aarch64 LOG=debug BLK=y run
+make A=apps/fs/shell ARCH=aarch64 LOG=debug BLK=y FS=fatfs run
 ```
 
 # RESULT
