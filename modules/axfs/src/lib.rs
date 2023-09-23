@@ -43,10 +43,16 @@ pub fn init_filesystems(mut blk_devs: AxDeviceContainer<AxBlockDevice>) {
 
     let dev = blk_devs.take_one().expect("No block device found!");
     info!("  use block device 0: {:?}", dev.device_name());
-    #[cfg(any(feature = "myfs", feature = "fatfs"))]
-    self::root::init_rootfs(self::dev::Disk::new(dev));
-    #[cfg(feature = "diskfs")]
-    self::root::init_my_rootfs(disk::Disk::new(dev));
+
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "myfs")] {
+            self::root::init_rootfs(self::dev::Disk::new(dev));
+        } else if #[cfg(feature = "fatfs")] {
+            self::root::init_rootfs(self::dev::Disk::new(dev));
+        } else if #[cfg(feature = "diskfs")] {
+            self::root::init_my_rootfs(disk::Disk::new(dev));
+        }
+    }
 }
 
 /// Initializes sector manager by block devices.

@@ -1,4 +1,6 @@
 #![cfg(feature = "diskfs")]
+#![cfg(not(feature = "fatfs"))]
+#![cfg(not(feature = "myfs"))]
 
 mod test_common;
 
