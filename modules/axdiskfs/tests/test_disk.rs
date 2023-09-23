@@ -1,6 +1,8 @@
 use axdiskfs::disk;
 use driver_block::ramdisk::RamDisk;
 
+use std::process::Command;
+
 const IMG_PATH: &str = "resources/myimage.img";
 
 fn make_disk() -> std::io::Result<RamDisk> {
@@ -13,6 +15,11 @@ fn make_disk() -> std::io::Result<RamDisk> {
 
 #[test]
 fn test_disk() {
+    let mut cmd = Command::new("sh");
+
+    cmd.arg("./resources/test_make_diskfs_img.sh")
+        .output()
+        .expect("failed to execute process");
     println!("test disk from axdiskfs...");
 
     let disk = make_disk().expect("failed to load disk image");

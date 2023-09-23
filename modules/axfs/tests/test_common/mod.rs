@@ -26,7 +26,6 @@ fn test_read_write_file() -> Result<()> {
     let mut contents = String::new();
     println!("after new String()");
     file.read_to_string(&mut contents)?;
-    print!("********************");
     print!("{}", contents);
     assert_eq!(contents.len(), file_size as usize);
     assert_eq!(file.write(b"Hello, world!\n")?, 14); // append
@@ -37,14 +36,10 @@ fn test_read_write_file() -> Result<()> {
     print!("&&&&&&&&&&&&&&&&&{}", new_contents);
     assert_eq!(new_contents, contents + "Hello, world!\n");
 
-    println!("&&&&&&&&&&&&&&&&&&&&&&& end assert_eq!");
-
     // append and check
     let mut file = OpenOptions::new().append(true).open(fname)?;
     assert_eq!(file.write(b"new line\n")?, 9);
     drop(file);
-
-    println!("&&&&&&&&&&&&&&&&&&&&&&& end assert_eq!2");
 
     let new_contents2 = fs::read_to_string(fname)?;
     println!("%%%%%%%%%%%%%%%%%%%%% end read new content 2");

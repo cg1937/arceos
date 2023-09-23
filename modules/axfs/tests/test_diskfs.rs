@@ -5,6 +5,7 @@ mod test_common;
 use axdiskfs::FS;
 use axdriver::AxDeviceContainer;
 use driver_block::ramdisk::RamDisk;
+use std::process::Command;
 
 const IMG_PATH: &str = "resources/myimage.img";
 
@@ -19,6 +20,12 @@ fn make_disk() -> std::io::Result<RamDisk> {
 #[test]
 fn test_diskfs() {
     println!("Testing diskfs with ramdisk ...");
+
+    let mut cmd = Command::new("sh");
+
+    cmd.arg("./resources/test_make_diskfs_img.sh")
+        .output()
+        .expect("failed to execute process");
 
     let disk = make_disk().expect("failed to load disk image");
     axtask::init_scheduler(); // call this to use `axsync::Mutex`.
