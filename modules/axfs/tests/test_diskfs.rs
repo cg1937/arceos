@@ -1,7 +1,6 @@
-#[cfg(feature = "diskfs")]
+#![cfg(feature = "diskfs")]
 mod test_common;
 
-#[cfg(feature = "diskfs")]
 use axdiskfs::FS;
 use axdriver::AxDeviceContainer;
 use driver_block::ramdisk::RamDisk;
@@ -17,7 +16,6 @@ fn make_disk() -> std::io::Result<RamDisk> {
     Ok(RamDisk::from(&data))
 }
 
-#[cfg(feature = "diskfs")]
 #[test]
 fn test_diskfs() {
     println!("Testing diskfs with ramdisk ...");

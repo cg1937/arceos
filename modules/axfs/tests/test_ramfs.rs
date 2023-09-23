@@ -1,4 +1,4 @@
-#[cfg(feature = "myfs")]
+#![cfg(feature = "myfs")]
 mod test_common;
 
 use std::sync::Arc;

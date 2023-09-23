@@ -1,4 +1,4 @@
-#[cfg(feature = "fatfs")]
+#![cfg(feature = "fatfs")]
 mod test_common;
 
 use axdriver::AxDeviceContainer;
