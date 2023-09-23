@@ -19,7 +19,7 @@ diskfs = ["dep:axdiskfs"]
 myfs = ["dep:crate_interface"]
 use-ramdisk = []
 
-default = ["devfs", "ramfs", "procfs", "sysfs", "fatfs"]
+default = ["devfs", "ramfs", "procfs", "fatfs", "diskfs", "myfs"]
 
 [dependencies]
 log = "0.4"
