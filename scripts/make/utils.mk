@@ -12,7 +12,7 @@ define run_cmd
   @$(1) $(2)
 endef
 
-define make_disk_image_fat32
+define make_disk_image_fatfs
   @printf "    $(GREEN_C)Creating$(END_C) FAT32 disk image \"$(1)\" ...\n"
   @dd if=/dev/zero of=$(1) bs=1M count=64
   @mkfs.fat -F 32 $(1)
@@ -24,6 +24,6 @@ define make_disk_image_diskfs
 endef
 
 define make_disk_image
-	$(if $(filter $(1),fat32), $(call make_disk_image_fat32,$(2)))
+	$(if $(filter $(1),fatfs), $(call make_disk_image_fatfs,$(2)))
 	$(if $(filter $(1),diskfs), $(call make_disk_image_diskfs,$(2)))
 endef

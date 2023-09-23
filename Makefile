@@ -196,8 +196,8 @@ unittest_no_fail_fast:
 disk_img:
 ifneq ($(wildcard $(DISK_IMG)),)
 	@printf "$(YELLOW_C)warning$(END_C): disk image \"$(DISK_IMG)\" already exists!\n"
-else ifeq ($(FS), fat32)
-	$(call make_disk_image,fat32,$(DISK_IMG))
+else ifeq ($(FS), fatfs)
+	$(call make_disk_image,fatfs,$(DISK_IMG))
 else ifeq ($(FS), diskfs)
 	$(call make_disk_image,diskfs,$(DISK_IMG))
 endif

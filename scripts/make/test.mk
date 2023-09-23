@@ -2,7 +2,9 @@
 
 define unit_test
   $(call run_cmd,cargo test,-p percpu $(1) -- --nocapture)
-  $(call run_cmd,cargo test,-p axfs $(1) --features "fatfs" -- --nocapture)
+  $(call run_cmd,cargo test,-p axfs $(1) --features "myfs" --test test_ramfs -- --nocapture)
+  $(call run_cmd,cargo test,-p axfs $(1) --features "fatfs" --test test_fatfs -- --nocapture)
+  $(call run_cmd,cargo test,-p axfs $(1) --features "diskfs" --test test_diskfs -- --nocapture)
   $(call run_cmd,cargo test,--workspace --exclude "arceos-*" $(1) -- --nocapture)
 endef
 
