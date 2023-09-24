@@ -4,8 +4,6 @@ use axio as io;
 use fs::{File, FileType, OpenOptions};
 use io::{prelude::*, Error, Result};
 
-extern crate std;
-
 macro_rules! assert_err {
     ($expr: expr) => {
         assert!(($expr).is_err())
@@ -22,9 +20,7 @@ fn test_read_write_file() -> Result<()> {
     // read and write
     let mut file = File::options().read(true).write(true).open(fname)?;
     let file_size = file.metadata()?.len();
-    println!("***********file size = {}", file_size);
     let mut contents = String::new();
-    println!("after new String()");
     file.read_to_string(&mut contents)?;
     print!("{}", contents);
     assert_eq!(contents.len(), file_size as usize);
@@ -33,7 +29,7 @@ fn test_read_write_file() -> Result<()> {
 
     // read again and check
     let new_contents = fs::read_to_string(fname)?;
-    print!("&&&&&&&&&&&&&&&&&{}", new_contents);
+    print!("{}", new_contents);
     assert_eq!(new_contents, contents + "Hello, world!\n");
 
     // append and check
@@ -42,7 +38,6 @@ fn test_read_write_file() -> Result<()> {
     drop(file);
 
     let new_contents2 = fs::read_to_string(fname)?;
-    println!("%%%%%%%%%%%%%%%%%%%%% end read new content 2");
     print!("{}", new_contents2);
     assert_eq!(new_contents2, new_contents + "new line\n");
 
@@ -105,12 +100,10 @@ fn test_file_permission() -> Result<()> {
 fn test_create_file_dir() -> Result<()> {
     // create a file and test existence
     let fname = "././/very-long-dir-name/..///new-file.txt";
-    println!("((((((((((((((((((((((((((test create file {:?}:", fname);
+    println!("test create file {:?}:", fname);
     assert_err!(fs::metadata(fname), NotFound);
-    println!("after assert_err");
     let contents = "create a new file!\n";
     fs::write(fname, contents)?;
-    println!("after fs::write()");
 
     let dirents = fs::read_dir(".")?
         .map(|e| e.unwrap().file_name())
@@ -119,13 +112,13 @@ fn test_create_file_dir() -> Result<()> {
     assert!(dirents.contains(&"new-file.txt".into()));
     assert_eq!(fs::read_to_string(fname)?, contents);
     assert_err!(File::create_new(fname), AlreadyExists);
-    println!("^^^^^^^^^^^^^^^^^^^^after test read dirents");
+
     // create a directory and test existence
     let dirname = "///././/very//.//long/./new-dir";
     println!("test create dir {:?}:", dirname);
     assert_err!(fs::metadata(dirname), NotFound);
     fs::create_dir(dirname)?;
-    println!("^^^^^^^^^^^^^^^^^^^^after test");
+
     let dirents = fs::read_dir("./very/long")?
         .map(|e| e.unwrap().file_name())
         .collect::<Vec<_>>();
@@ -266,5 +259,4 @@ pub fn test_all() {
     test_create_file_dir().expect("test_create_file_dir() failed");
     test_remove_file_dir().expect("test_remove_file_dir() failed");
     test_devfs_ramfs().expect("test_devfs_ramfs() failed");
-    std::process::exit(0);
 }
