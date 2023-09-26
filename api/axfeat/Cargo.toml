@@ -29,20 +29,38 @@ alloc-buddy = ["axalloc/buddy"]
 paging = ["alloc", "axhal/paging", "axruntime/paging"]
 
 # Multi-threading and scheduler
-multitask = ["alloc", "axtask/multitask", "axsync/multitask", "axruntime/multitask"]
+multitask = [
+    "alloc",
+    "axtask/multitask",
+    "axsync/multitask",
+    "axruntime/multitask",
+]
 sched_fifo = ["axtask/sched_fifo"]
 sched_rr = ["axtask/sched_rr", "irq"]
 sched_cfs = ["axtask/sched_cfs", "irq"]
 
 # File system
-fs = ["alloc", "paging", "axdriver/virtio-blk", "dep:axfs", "axruntime/fs"] # TODO: try to remove "paging"
+fs = [
+    "alloc",
+    "paging",
+    "axdriver/virtio-blk",
+    "dep:axfs",
+    "axruntime/fs",
+] # TODO: try to remove "paging"
 myfs = ["axfs?/myfs"]
+diskfs = ["axfs?/diskfs"]
 
 # Networking
 net = ["alloc", "paging", "axdriver/virtio-net", "dep:axnet", "axruntime/net"]
 
 # Display
-display = ["alloc", "paging", "axdriver/virtio-gpu", "dep:axdisplay", "axruntime/display"]
+display = [
+    "alloc",
+    "paging",
+    "axdriver/virtio-gpu",
+    "dep:axdisplay",
+    "axruntime/display",
+]
 
 # Device drivers
 bus-mmio = ["axdriver?/bus-mmio"]
