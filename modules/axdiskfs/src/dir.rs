@@ -20,14 +20,14 @@ use driver_block::DevError;
 /// Basic Dir Struct for DirNode
 #[derive(Clone)]
 pub struct Dir {
-    /// entries: a vector of DirEntry
+    /// A vector of DirEntry, each entry is a DirEntry
     pub entries: Vec<DirEntry>,
-    /// is_root: if dir is root, is_root = true, else is_root = false
+    /// If dir is the root directory, is_root is true, else is_root is false.
     is_root: bool,
 }
 
 impl Dir {
-    /// new_root: create a new Dir Struct for root
+    /// Use available entries to create a new root Dir Struct.
     pub fn new_root(entries: &Vec<DirEntry>) -> Self {
         Self {
             entries: entries.clone(),
@@ -35,7 +35,7 @@ impl Dir {
         }
     }
 
-    /// new: create a new Dir Struct
+    /// Create a new Dir Struct. Unlike root, the ordinary dir needs to initialize the first and second entry.
     pub fn new(first_cluster: u32, parent_first_cluster: u32) -> Self {
         let mut entries = Vec::new();
         entries.push(DirEntry {
@@ -56,24 +56,24 @@ impl Dir {
         }
     }
 
-    /// size: return the size of Dir
+    /// Calculate the size of Dir via all entries that are valid.
     fn size(&self) -> u32 {
         self.entries.iter().fold(0, |acc, entry| {
             acc + if entry.is_valid() { entry.file_size } else { 0 }
         })
     }
 
-    /// get_entry_by_index: return the entry by index
+    /// Return the entry by index.
     pub fn get_entry_by_index(&self, index: usize) -> Option<DirEntry> {
         Some(self.entries[index])
     }
 
-    /// get_self_first_cluster: return the first cluster of self
+    /// Return the first cluster used by itself.
     pub fn get_self_first_cluster(&self) -> u32 {
         self.get_entry_by_index(0).unwrap().first_cluster
     }
 
-    /// find_next_free_entry: find the next free entry in entries
+    /// Find the next free entry in entries
     pub fn find_next_free_entry(&self) -> Option<usize> {
         let start_index = if self.is_root { 0 } else { 2 };
         self.entries
@@ -84,7 +84,7 @@ impl Dir {
             .map(|(index, _)| index)
     }
 
-    /// get_entry_by_name: return the entry by name
+    /// Return the entry by name.
     pub fn get_entry_by_name(&self, name: &str) -> Option<usize> {
         self.entries.iter().enumerate().find_map(|(i, entry)| {
             if entry.name().as_deref() == Some(name) {
@@ -95,12 +95,12 @@ impl Dir {
         })
     }
 
-    /// set_entries: set entries
+    /// Set the entries of Dir.
     pub fn set_entries(&mut self, entries: Vec<DirEntry>) {
         self.entries = entries;
     }
 
-    /// update_file_size: update file_size of entry
+    /// Find entry by name, if not found, return Err, else update file_size and return Ok.
     pub fn update_file_size(&mut self, file_name: &str, file_size: u32) -> Result<(), DevError> {
         let start_index = if self.is_root { 0 } else { 2 };
         if let Some(entry) = self
@@ -116,33 +116,32 @@ impl Dir {
         }
     }
 
-    /// update_entries_from_disk: read all entries from disk and update entries
+    /// Read all entries from disk and update entries.
     pub fn update_entries_from_disk(&mut self) -> Result<(), DevError> {
         let mut new_entries = Vec::new();
         let mut curr_cluster = self.get_entry_by_index(0).unwrap().first_cluster;
         let dir_entry_size = size_of_struct!(DirEntry);
-        let fs_mutex = FS.try_get().expect("FS not initialized");
+        let fs_arc = FS.try_get().expect("FS not initialized");
 
-        while fs_mutex.is_end(curr_cluster) {
+        while fs_arc.is_end(curr_cluster) {
             // if curr_cluster is Bad cluster
-            if fs_mutex.is_bad_cluster(curr_cluster) {
+            if fs_arc.is_bad_cluster(curr_cluster) {
                 return Err(DevError::Unsupported);
             }
-            let cluster_data = fs_mutex.read_cluster(curr_cluster)?;
+            let cluster_data = fs_arc.read_cluster(curr_cluster)?;
             let mut cluster_entries = Vec::new();
             for i in 0..cluster_data.len() / dir_entry_size {
                 let entry = DirEntry::new(&cluster_data[i * dir_entry_size..]);
                 cluster_entries.push(entry);
             }
             new_entries.append(&mut cluster_entries);
-            curr_cluster = fs_mutex.get_fat_entry(curr_cluster)?;
+            curr_cluster = fs_arc.get_fat_entry(curr_cluster)?;
         }
-        // todo: if previous cluster numbers can't hold all entries, allocate new cluster
         self.set_entries(new_entries);
         Ok(())
     }
 
-    /// write_entries_to_disk: write all entries to disk
+    /// Write all entries of current memory to disk.
     pub fn write_entries_to_disk(&mut self) -> Result<(), DevError> {
         let mut curr_cluster = self.get_entry_by_index(0).unwrap().first_cluster;
         let dir_entry_size = size_of_struct!(DirEntry);
@@ -170,7 +169,7 @@ impl Dir {
         Ok(())
     }
 
-    /// add_entry: will add a entry to entries, find a entry that name\[0\] == 0xE5 or name\[0\] == 0x00,if can't find create a new one after the last entry
+    /// Add a entry to entries, find a entry that name\[0\] == 0xE5 or name\[0\] == 0x00, if can't find then create a new one after the last entry
     pub fn add_entry(&mut self, entry: DirEntry) -> Result<(), DevError> {
         let index = self.find_next_free_entry();
         match index {
@@ -187,7 +186,7 @@ impl Dir {
         Ok(())
     }
 
-    /// delete_entry: delete entry by name, set name\[0\] = 0xE5, free cluster
+    /// Delete the entry by name, set name\[0\] = 0xE5, then free cluster.
     pub fn delete_entry(&mut self, name: &str) -> Result<(), DevError> {
         let index = self.get_entry_by_name(name);
         let fs_arc = FS.try_get().expect("FS not initialized");
@@ -212,7 +211,7 @@ impl Dir {
         Ok(())
     }
 
-    /// is_entry_dir: return true if entry is dir, else return false
+    /// Find the entry by name, return true if entry is dir, else return false.
     pub fn is_entry_dir(&self, name: &str) -> Result<bool, DevError> {
         let index = self.get_entry_by_name(name);
         match index {
@@ -221,7 +220,7 @@ impl Dir {
         }
     }
 
-    /// update_entry: update entry by index
+    /// Update the entire entry by index.
     pub fn update_entry(&mut self, index: u32, entry: DirEntry) -> Result<(), DevError> {
         if index <= 1 || index >= self.entries.len() as u32 {
             return Err(DevError::Unsupported);
@@ -230,7 +229,7 @@ impl Dir {
         Ok(())
     }
 
-    /// update_entry_name: update entry's name by original_name, if can't find original_name, return Err
+    /// Update entry's name, if can't find the entry, return Err
     pub fn update_entry_name(
         &mut self,
         original_name: &str,
@@ -253,7 +252,7 @@ impl Dir {
     }
 }
 
-/// DirNode: a struct that can represent a dir in VFS
+/// DirNode: a struct that can represent a dir in VFS, this struct is a higher level of Dir.
 pub struct DirNode {
     this: Weak<DirNode>,
     dir: RwLock<Dir>,
@@ -264,7 +263,7 @@ pub struct DirNode {
 }
 
 impl DirNode {
-    /// new: create a new DirNode
+    /// Create a new DirNode.
     pub fn new(dir: Dir, name: String, parent: Option<Weak<DirNode>>) -> Arc<Self> {
         Arc::new_cyclic(|this| Self {
             this: this.clone(),
@@ -276,17 +275,17 @@ impl DirNode {
         })
     }
 
-    /// get_name: return the name of DirNode
+    /// Return the name of DirNode
     pub fn get_name(&self) -> String {
         self.name.read().clone()
     }
 
-    /// get_total_size: return the total size of DirNode
+    /// Return the total size of DirNode, virtually this function is a wrapper of Dir.size().
     pub fn get_total_size(&self) -> u32 {
         self.dir.read().size()
     }
 
-    /// update_file_size: update file_size of child_file_name
+    /// Update the file_size of child_file_name, virtually this function is a wrapper of Dir.update_file_size().
     pub fn update_child_file_size(
         &self,
         child_file_name: &str,
@@ -297,12 +296,12 @@ impl DirNode {
             .update_file_size(child_file_name, file_size)
     }
 
-    /// is_empty: return true if DirNode is empty, else return false
+    /// Check the file_children and the dir_children of DirNode, return true if all childrens are empty, else return false.
     pub fn is_empty(&self) -> bool {
         self.file_children.read().is_empty() && self.dir_children.read().is_empty()
     }
 
-    /// is_dir_child_empty: return true if DirNode's dir_children is empty, else return false
+    /// Return true if DirNode's dir_children is empty, else return false
     fn is_dir_child_empty(&self, name: &str) -> Option<bool> {
         let children = self.dir_children.read();
         match children.get(name) {
@@ -311,12 +310,12 @@ impl DirNode {
         }
     }
 
-    /// self_rename: rename self
+    /// Rename itself.
     pub fn self_rename(&self, target_name: &str) {
         *self.name.write() = target_name.to_string();
     }
 
-    /// is_file_child_empty: return true if DirNode's file_children is empty, else return false
+    /// Return true if DirNode's file_children is empty, else return false
     fn is_file_child_empty(&self, name: &str) -> Option<bool> {
         let children = self.file_children.read();
         match children.get(name) {
@@ -325,7 +324,7 @@ impl DirNode {
         }
     }
 
-    /// is_child_empty: return true if DirNode's child is empty, else return false
+    /// Return true if DirNode's child is empty, else return false
     pub fn is_child_empty(&self, name: &str) -> Option<bool> {
         if let Some(is_empty) = self.is_dir_child_empty(name) {
             return Some(is_empty);
@@ -336,7 +335,7 @@ impl DirNode {
         None
     }
 
-    /// a function that can parse dir 's DirEntry ,then extract info to the children
+    /// Parse dir entries and update children, ensure that the two are consistent.
     pub fn update_children(&self) -> Result<(), DevError> {
         let self_dir = self.dir.read();
         let self_entries_len = self_dir.entries.len();
@@ -374,19 +373,19 @@ impl DirNode {
         Ok(())
     }
 
-    /// add_dir_child: add a dir child to DirNode
-    pub fn add_dir_child(&self, name: &str, child: Arc<DirNode>) -> Result<(), DevError> {
+    /// Add a dir child to the current DirNode.
+    fn add_dir_child(&self, name: &str, child: Arc<DirNode>) -> Result<(), DevError> {
         self.dir_children.write().insert(name.to_string(), child);
         Ok(())
     }
 
-    /// add_file_child: add a file child to DirNode
-    pub fn add_file_child(&self, name: &str, child: Arc<FileNode>) -> Result<(), DevError> {
+    /// Add a file child to the current DirNode.
+    fn add_file_child(&self, name: &str, child: Arc<FileNode>) -> Result<(), DevError> {
         self.file_children.write().insert(name.to_string(), child);
         Ok(())
     }
 
-    /// create_dir_child: create a dir child to DirNode
+    /// Create a dir child to the current DirNode.
     pub fn create_dir_child(&self, name: &str) -> Result<(), DevError> {
         let fs_arc = FS.try_get().expect("FS not initialized");
         let entry = DirEntry {
@@ -411,7 +410,7 @@ impl DirNode {
         Ok(())
     }
 
-    /// create_file_child: create a file child to DirNode
+    /// Create a new empty file child to the current DirNode by name.
     pub fn create_file_child(&self, name: &str) -> Result<(), DevError> {
         let fs_arc = FS.try_get().expect("FS not initialized");
         let entry = DirEntry {
@@ -432,22 +431,22 @@ impl DirNode {
         Ok(())
     }
 
-    /// create_child: create a child to DirNode
-    pub fn remove_file_child(&self, name: &str) -> Result<(), DevError> {
+    /// Remove a file child of the current DirNode by name if it exists.
+    fn remove_file_child(&self, name: &str) -> Result<(), DevError> {
         // find name's location in DirNode's entries, set name[0] = 0xE5, then update children
         self.dir.write().delete_entry(name)?;
         self.file_children.write().remove(name);
         Ok(())
     }
 
-    /// remove_dir_child: remove a dir child to DirNode
-    pub fn remove_dir_child(&self, name: &str) -> Result<(), DevError> {
+    /// Remove a dir child of the current DirNode if it exists.
+    fn remove_dir_child(&self, name: &str) -> Result<(), DevError> {
         self.dir.write().delete_entry(name)?;
         self.dir_children.write().remove(name);
         Ok(())
     }
 
-    /// remove_file_child: remove a file child to DirNode
+    /// Rename a file child of the current DirNode if it exists.
     fn rename_file_child(&self, original_name: &str, target_name: &str) -> Result<(), DevError> {
         self.dir
             .write()
@@ -459,7 +458,7 @@ impl DirNode {
         Ok(())
     }
 
-    /// rename_dir_child: rename a dir child to DirNode
+    /// Rename a dir child of the current DirNode if it exists.
     fn rename_dir_child(&self, original_name: &str, target_name: &str) -> Result<(), DevError> {
         self.dir
             .write()
@@ -471,7 +470,7 @@ impl DirNode {
         Ok(())
     }
 
-    /// rename_child: rename a child to DirNode
+    /// Rename a child of the current DirNode, this function is a combination of rename_file_child and rename_dir_child.
     pub fn rename_child(&self, original_name: &str, target_name: &str) -> Result<(), DevError> {
         if self.dir.read().is_entry_dir(original_name)? {
             self.rename_dir_child(original_name, target_name)
@@ -480,12 +479,12 @@ impl DirNode {
         }
     }
 
-    /// inner_parent: return the parent of DirNode
+    /// Return the reference of parent of the current DirNode.
     pub fn inner_parent(&self) -> Option<Arc<DirNode>> {
         self.parent.read().upgrade()
     }
 
-    /// find_dir_child: find a dir child to DirNode
+    /// Find a dir child of the current DirNode by name if it exists.
     pub fn find_dir_child(&self, name: &str) -> Result<Arc<DirNode>, DevError> {
         match self.dir_children.read().get(name) {
             Some(child) => Ok(child.clone()),
@@ -493,7 +492,7 @@ impl DirNode {
         }
     }
 
-    /// find_file_child: find a file child to DirNode
+    /// Find a file child of the current DirNode by name if it exists.
     pub fn find_file_child(&self, name: &str) -> Result<Arc<FileNode>, DevError> {
         match self.file_children.read().get(name) {
             Some(child) => Ok(child.clone()),
@@ -681,7 +680,7 @@ impl VfsNodeOps for DirNode {
     axfs_vfs::impl_vfs_dir_default! {}
 }
 
-/// split_path: split path to name and rest, for example: /a/b/c -> (a, Some(b/c))
+/// split path to name and rest, for example: /a/b/c -> (a, Some(b/c))
 fn split_path(path: &str) -> (&str, Option<&str>) {
     let trimmed_path = path.trim_start_matches('/');
     trimmed_path.find('/').map_or((trimmed_path, None), |n| {

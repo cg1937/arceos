@@ -3,7 +3,7 @@ use axdriver::{prelude::*, AxBlockDevice};
 /// The block size of the disk. Default to 512 bytes.
 const BLOCK_SIZE: usize = 512;
 
-/// Seek from where.
+/// Seek from the position(start, end, current) of the disk.
 #[derive(Copy, PartialEq, Eq, Clone, Debug)]
 pub enum SeekFrom {
     /// Seek from the start of the disk.
@@ -20,7 +20,7 @@ pub struct Disk {
     block_id: u64,
     /// The current offset within the block.
     offset: usize,
-    /// The underlying block device.
+    /// The low-level block device.
     dev: AxBlockDevice,
 }
 

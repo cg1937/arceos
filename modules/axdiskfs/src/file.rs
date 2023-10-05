@@ -18,21 +18,21 @@ use spin::RwLock;
 
 use core::cmp::max;
 
-/// A File Struct to store the FAT fileSystem file's information
+/// A File Struct to store the FAT fileSystem file's information.
 #[derive(Clone)]
 pub struct File {
-    /// file size in bytes
+    /// File size in bytes.
     size: u32,
-    /// the first cluster of the file
+    /// The first cluster of the file.
     first_cluster: u32,
-    /// the current cluster of the file   
+    /// The current cluster of the file.
     current_cluster: u32,
-    /// the offset of the current cluster
+    /// The offset of the current cluster.
     offset: u32,
 }
 
 impl File {
-    /// create a new file
+    /// Create a new File Struct.
     pub fn new(first_cluster: u32) -> Self {
         Self {
             size: 0,
@@ -42,16 +42,18 @@ impl File {
         }
     }
 
+    /// Return the size of the file.
     fn size(&self) -> u64 {
         self.size as u64
     }
 
+    /// Return the current byte position of the file.
     fn position(&self) -> u64 {
         let fs_mutex = FS.try_get().expect("fs is not initialized");
         self.current_cluster as u64 * fs_mutex.bytes_per_cluster() as u64 + self.offset as u64
     }
 
-    /// read_all: read all data of the file, return a `Vec<u8>`.
+    /// Read all data of the file, return a `Vec<u8>`.
     pub fn read_all(&mut self) -> DevResult<Vec<u8>> {
         let mut data = Vec::new();
         let mut all_clusters = Vec::new();
@@ -80,7 +82,7 @@ impl File {
         Ok(data)
     }
 
-    /// read_at: use curr_cluster and offset to read data
+    /// Use curr_cluster and offset to read data, return a `Vec<u8>`.
     pub fn read_at(&mut self, byte_offset: u64, buf: &mut [u8]) -> DevResult<usize> {
         if byte_offset >= self.size() {
             return Ok(0usize);
@@ -132,7 +134,7 @@ impl File {
         Ok(buf_offset)
     }
 
-    /// read_seq: use curr_cluster and offset to read data(read to the current cluster end)
+    /// Use curr_cluster and offset to read data(read to the current cluster end).
     pub fn read_seq(&mut self) -> DevResult<Vec<u8>> {
         let mut data = Vec::new();
         let fs_mutex = FS.try_get().expect("fs is not initialized");
@@ -146,7 +148,7 @@ impl File {
         Ok(data)
     }
 
-    /// write_at: use curr_cluster and offset to write data
+    /// Use curr_cluster and offset to write data.
     pub fn write_at(&mut self, byte_offset: u64, buf: &[u8]) -> DevResult<usize> {
         // can't write data beyond the file size
         if byte_offset > self.size() || (self.size() == 0 && byte_offset != 0) {
@@ -203,17 +205,15 @@ impl File {
         Ok(buf_offset)
     }
 
-    /// write_seq: use curr_cluster and offset to write data(write to the current cluster end)
+    /// Use curr_cluster and offset to write data(write to the current cluster end).
     pub fn write_seq(&mut self, buf: &[u8]) -> DevResult<usize> {
         let fs_arc = FS.try_get().expect("fs is not initialized");
 
-        // Step 1: Get the current cluster and offset
         let mut cluster = self.current_cluster;
         let mut offset = self.offset as u64;
 
         let old_size = self.size();
 
-        // Step 3: Calculate the remaining space in the current cluster
         let mut buf_offset = 0;
         while buf_offset < buf.len() {
             // Step 4: Start a loop until all data is written
@@ -239,18 +239,15 @@ impl File {
             }
         }
 
-        // Step 5: Update the file's current cluster and offset
         self.current_cluster = cluster;
         self.offset = offset as u32;
 
-        // Step 6: Calculate the size of the file after writing
         self.update_file_size(max(old_size, self.offset as u64 + buf.len() as u64) as u32);
 
-        // Step 7: Return the written size
         Ok(buf_offset)
     }
 
-    /// seek: use curr_cluster and offset to seek data
+    /// Use SeekFrom enum to seek the cursor.
     pub fn seek(&mut self, pos: SeekFrom) -> Result<(), DevError> {
         match pos {
             SeekFrom::Start(pos) => {
@@ -266,6 +263,7 @@ impl File {
         Ok(())
     }
 
+    /// Set the current cluster and offset via pos from start. Note that avoid the invalid pos.
     fn seek_from_start(&mut self, pos: u64) -> Result<(), DevError> {
         if pos >= self.size() {
             return Err(DevError::Unsupported);
@@ -285,13 +283,14 @@ impl File {
         Ok(())
     }
 
+    /// Set the current cluster and offset via pos from end.
     fn seek_from_end(&mut self, off: i64) -> Result<(), DevError> {
         let size = self.size();
         let new_pos = size.checked_add_signed(off).ok_or(DevError::Unsupported)?;
         self.seek_from_start(new_pos)
     }
 
-    //TODO: if off is positive, not need use seek_from_start
+    /// Set the current cluster and offset via pos from current.
     fn seek_from_current(&mut self, off: i64) -> Result<(), DevError> {
         let new_pos = self
             .position()
@@ -300,7 +299,7 @@ impl File {
         self.seek_from_start(new_pos)
     }
 
-    /// truncate: truncate the file to the given size
+    /// Truncate the file to the given size.
     pub fn truncate(&mut self, size: u64) -> Result<(), DevError> {
         // size should be cluster's multiple
         let fs_arc = FS.try_get().expect("fs is not initialized");
@@ -358,28 +357,18 @@ impl File {
     }
 }
 
-/// A FileNode Struct to represent a file in the FAT fileSystem
+/// A FileNode Struct to represent a file in the FAT fileSystem, this struct is high-level representation of File.
 pub struct FileNode {
-    /// file: the file of the fileNode
+    /// The file of the fileNode
     file: RwLock<File>,
-    /// name: the name of the fileNode
+    /// The name of the fileNode
     name: RwLock<String>,
-    /// parent: the parent of the fileNode
+    /// The parent of the fileNode
     parent: RwLock<Weak<DirNode>>,
 }
 
-impl Clone for FileNode {
-    fn clone(&self) -> Self {
-        FileNode {
-            file: RwLock::new(self.file.read().clone()),
-            name: RwLock::new(self.name.read().clone()),
-            parent: RwLock::new(self.parent.read().clone()),
-        }
-    }
-}
-
 impl FileNode {
-    /// create a new fileNode
+    /// Create a new fileNode.
     pub fn new(file: File, name: String, parent: Option<Weak<DirNode>>) -> Self {
         Self {
             file: RwLock::new(file),
@@ -389,66 +378,65 @@ impl FileNode {
         }
     }
 
-    /// self_rename: rename the fileNode itself
+    /// Rename itself.
     pub fn self_rename(&self, new_name: &str) {
         let mut name_lock = self.name.write();
         *name_lock = new_name.to_string();
     }
 
-    /// get_name: get the name of the fileNode
+    /// Return the name of the fileNode.
     pub fn get_name(&self) -> String {
         self.name.read().clone()
     }
 
-    /// get_size: get the size of the fileNode
+    /// Return the size of the fileNode.
     pub fn get_size(&self) -> u64 {
         self.file.read().size() as u64
     }
 
-    /// parent: get the parent of the fileNode
+    /// Return the parent of the fileNode.
     pub fn parent(&self) -> Option<Arc<DirNode>> {
         self.parent.read().upgrade()
     }
 
-    /// update_size: update the size of the fileNode
+    /// Update the size of the current fileNode.
     pub fn update_size(&self) -> Result<(), DevError> {
         let new_size = self.file.read().size() as u32;
         let parent = self.parent.write().upgrade().unwrap();
         parent.update_child_file_size(self.name.read().clone().as_str(), new_size)
     }
 
-    /// set_parent: set the parent of the fileNode
+    /// Set the parent of the current fileNode.
     pub fn set_parent(&self, parent: Weak<DirNode>) {
         let mut parent_lock = self.parent.write();
         *parent_lock = parent;
     }
 
-    /// read_at_test: read data from the fileNode
-    pub fn read_at_test(&self, byte_offset: u64, buf: &mut [u8]) -> Result<usize, DevError> {
+    /// Read data from the current fileNode, virtually this function is a inner function of VfsNodeOps read_at().
+    pub fn read_at_inner(&self, byte_offset: u64, buf: &mut [u8]) -> Result<usize, DevError> {
         self.file.write().read_at(byte_offset, buf)
     }
 
-    /// write_at_test: write data to the fileNode
-    pub fn write_at_test(&self, byte_offset: u64, buf: &[u8]) -> Result<usize, DevError> {
+    /// Write data to the current fileNode, virtually this function is a inner function of VfsNodeOps write_at().
+    pub fn write_at_inner(&self, byte_offset: u64, buf: &[u8]) -> Result<usize, DevError> {
         let res = self.file.write().write_at(byte_offset, buf);
-
         self.update_size()?;
         res
     }
 
-    /// read_all_test: read all data of the fileNode
-    pub fn read_all_test(&self) -> Result<Vec<u8>, DevError> {
+    /// Read all data of the current fileNode, virtually this function is a inner function of VfsNodeOps read_all().
+    pub fn read_all_inner(&self) -> Result<Vec<u8>, DevError> {
         self.file.write().read_all()
     }
 
-    /// truncate_test: truncate the fileNode
-    pub fn truncate_test(&self, size: u64) -> Result<(), DevError> {
+    /// Truncate the fileNode, virtually this function is a inner function of VfsNodeOps truncate().
+    pub fn truncate_inner(&self, size: u64) -> Result<(), DevError> {
         let res = self.file.write().truncate(size);
         self.update_size()?;
         res
     }
 
-    /// is_empty: check if the fileNode is empty
+    /// Check if the fileNode is empty via file size.
     pub fn is_empty(&self) -> bool {
         self.file.read().size() == 0
     }
@@ -457,7 +445,6 @@ impl FileNode {
 impl VfsNodeOps for FileNode {
     fn get_attr(&self) -> VfsResult<VfsNodeAttr> {
         let file_size = self.file.read().size();
-        // 一个块的大小为 512 字节
         let blocks = file_size / 512 + if file_size % 512 == 0 { 0 } else { 1 };
         Ok(VfsNodeAttr::new(
             VfsNodePerm::from_bits_truncate(0o755),
@@ -468,19 +455,19 @@ impl VfsNodeOps for FileNode {
     }
 
     fn truncate(&self, size: u64) -> VfsResult {
-        self.truncate_test(size).map_err(|e| match e {
+        self.truncate_inner(size).map_err(|e| match e {
             _ => VfsError::Unsupported,
         })
     }
 
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> VfsResult<usize> {
-        self.read_at_test(offset, buf).map_err(|e| match e {
+        self.read_at_inner(offset, buf).map_err(|e| match e {
             _ => VfsError::Unsupported,
         })
     }
 
     fn write_at(&self, offset: u64, buf: &[u8]) -> VfsResult<usize> {
-        self.write_at_test(offset, buf).map_err(|e| match e {
+        self.write_at_inner(offset, buf).map_err(|e| match e {
             _ => VfsError::Unsupported,
         })
     }

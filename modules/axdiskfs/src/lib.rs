@@ -1,4 +1,4 @@
-//! fat32 filesystem used by [ArceOS](https://github.com/rcore-os/arceos).
+//! A simple fat32-like filesystem used by [ArceOS](https://github.com/rcore-os/arceos).
 //!
 //! The implementation is inspired by [`..\crate\axfs_ramfs`].
 
@@ -7,28 +7,26 @@
 extern crate alloc;
 use crate::sector::SectorManager;
 use alloc::sync::Arc;
-// use once_cell::sync::OnceCell;
-// use lazy_static::lazy_static;
 use lazy_init::LazyInit;
 
-/// config mod: platform-specific constants and parameters axdiskfs.
+/// Platform-specific constants and parameters axdiskfs.
 pub mod config;
-/// dir mod: directory operations.
+/// Directory operations.
 pub mod dir;
-/// disk mod: disk operations.
+/// Disk operations.
 pub mod disk;
-/// diskfs mod: disk filesystem.
+/// Disk filesystem.
 pub mod diskfs;
-/// file mod: file operations.
+/// File operations.
 pub mod file;
-/// layout mod: filesystem layout.
+/// Filesystem layout.
 pub mod layout;
-/// macros mod: macros.
+/// Macros.
 pub mod macros;
-/// sector mod: sector operations.
+/// Sector operations.
 pub mod sector;
 
-/// a CCFileSystem global living example, used by File and Dir.
+/// A CCFileSystem global living example, used by File and Dir.
 pub static FS: LazyInit<Arc<diskfs::CCFileSystem>> = LazyInit::new();
 
 /// Initializes filesystems by Sector Manager.
