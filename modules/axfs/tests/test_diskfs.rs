@@ -36,7 +36,7 @@ fn test_diskfs() {
     let root = fs_arc.root_dir_node().unwrap();
     root.create_file_child("short.txt").unwrap();
     let file = root.find_file_child("short.txt").unwrap();
-    file.write_at_test(0, "Rust is cool\n".as_bytes());
+    file.write_at_inner(0, "Rust is cool\n".as_bytes());
 
     println!("string len: {}", "Rust is cool\n".len());
 
@@ -47,7 +47,7 @@ fn test_diskfs() {
         big_string.push_str("Rust is cool\n");
     }
 
-    long_file.write_at_test(0, big_string.as_bytes());
+    long_file.write_at_inner(0, big_string.as_bytes());
 
     root.create_dir_child("very-long-dir-name");
 
@@ -59,7 +59,7 @@ fn test_diskfs() {
         .find_file_child("very-long-file-name.txt")
         .unwrap();
 
-    very_long_file.write_at_test(0, "Rust is cool\n".as_bytes());
+    very_long_file.write_at_inner(0, "Rust is cool\n".as_bytes());
 
     let _ = root.create_dir_child("very");
     let very_dir = root.find_dir_child("very").unwrap();
@@ -73,7 +73,7 @@ fn test_diskfs() {
     very_long_path.create_file_child("test.txt").unwrap();
     let test_file = very_long_path.find_file_child("test.txt").unwrap();
 
-    let _ = test_file.write_at_test(0, "Rust is cool\n".as_bytes());
+    let _ = test_file.write_at_inner(0, "Rust is cool\n".as_bytes());
 
     test_common::test_all();
 }
