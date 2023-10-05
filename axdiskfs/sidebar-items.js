@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["initialize_fs"],"macro":["size_of_struct"],"mod":["config","dir","disk","diskfs","file","layout","macros","sector"],"static":["FS"]};

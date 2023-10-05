@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FatMarker"],"fn":["convert_to_u8_array"],"struct":["BootSector","DirEntry","DirEntryAttr","FSInfoSector"]};
